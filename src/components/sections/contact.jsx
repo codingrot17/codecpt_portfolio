@@ -63,8 +63,8 @@ export default function Contact() {
   };
 
   return (
-    <section id="contact" className="section-padding" ref={sectionRef}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section id="contact" className="section-padding overflow-hidden" ref={sectionRef}>
+      <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={isVisible ? { opacity: 1, y: 0 } : {}}
@@ -79,13 +79,13 @@ export default function Contact() {
           </p>
         </motion.div>
 
-        <div className="grid lg:grid-cols-2 gap-12">
+        <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Contact Form */}
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={isVisible ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="glassmorphism rounded-xl p-8"
+            className="glassmorphism rounded-xl p-6 sm:p-8"
           >
             <h3 className="text-2xl font-semibold mb-6 text-blue-400">
               Send a Message
@@ -112,7 +112,7 @@ export default function Contact() {
                   onSubmit={form.handleSubmit(onSubmit)}
                   className="space-y-6"
                 >
-                  <div className="grid md:grid-cols-2 gap-6">
+                  <div className="grid sm:grid-cols-2 gap-6">
                     <FormField
                       control={form.control}
                       name="name"
@@ -123,7 +123,7 @@ export default function Contact() {
                             <Input
                               placeholder="Your full name"
                               {...field}
-                              className="bg-primary-800/50 border-gray-600 text-black"
+                              className="bg-primary-800/50 border-gray-600 text-white"
                             />
                           </FormControl>
                           <FormMessage />
@@ -142,7 +142,7 @@ export default function Contact() {
                               type="email"
                               placeholder="your.email@example.com"
                               {...field}
-                              className="bg-primary-800/50 border-gray-600 text-black"
+                              className="bg-primary-800/50 border-gray-600 text-white"
                             />
                           </FormControl>
                           <FormMessage />
@@ -161,7 +161,7 @@ export default function Contact() {
                           <Input
                             placeholder="Project inquiry, collaboration, etc."
                             {...field}
-                            className="bg-primary-800/50 border-gray-600 text-black"
+                            className="bg-primary-800/50 border-gray-600 text-white"
                           />
                         </FormControl>
                         <FormMessage />
@@ -179,7 +179,7 @@ export default function Contact() {
                           <Textarea
                             {...field}
                             placeholder="Tell me about your project or what you'd like to discuss..."
-                            className="bg-primary-800/50 border-gray-600 text-black min-h-32"
+                            className="bg-primary-800/50 border-gray-600 text-white min-h-32"
                           />
                         </FormControl>
                         <FormMessage />
@@ -216,41 +216,41 @@ export default function Contact() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="space-y-8"
           >
-            <div className="glassmorphism rounded-xl p-8">
+            <div className="glassmorphism rounded-xl p-6 sm:p-8">
               <h3 className="text-2xl font-semibold mb-6 text-purple-400">
                 Let's Connect
               </h3>
 
               <div className="space-y-6">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0">
                     <Mail className="text-blue-400 w-5 h-5" />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h4 className="font-semibold">Email</h4>
-                    <p className="text-gray-300">codingrot001@gmail.com</p>
-                    <p className="text-gray-300">
+                    <p className="text-gray-300 break-words">codingrot001@gmail.com</p>
+                    <p className="text-gray-300 break-words">
                       ademolaemmanuel645@gmail.com
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center">
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 bg-purple-500/20 rounded-full flex items-center justify-center flex-shrink-0">
                     <Phone className="text-purple-400 w-5 h-5" />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h4 className="font-semibold">Phone</h4>
-                    <p className="text-gray-300">+234 (9) 033 747 946</p>
-                    <p className="text-gray-300">+234 (8) 081 779 959</p>
+                    <p className="text-gray-300 break-words">+234 (9) 033 747 946</p>
+                    <p className="text-gray-300 break-words">+234 (8) 081 779 959</p>
                   </div>
                 </div>
 
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center">
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center flex-shrink-0">
                     <MapPin className="text-green-400 w-5 h-5" />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h4 className="font-semibold">Location</h4>
                     <p className="text-gray-300">Lagos, Nigeria</p>
                   </div>
@@ -258,7 +258,7 @@ export default function Contact() {
               </div>
             </div>
 
-            <div className="glassmorphism rounded-xl p-8">
+            <div className="glassmorphism rounded-xl p-6 sm:p-8">
               <h3 className="text-xl font-semibold mb-6">
                 Available for Work
               </h3>
@@ -267,7 +267,7 @@ export default function Contact() {
                 opportunities. Let's create something amazing together!
               </p>
               <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse flex-shrink-0" />
                 <span className="text-green-400 font-semibold">
                   Available Now
                 </span>
