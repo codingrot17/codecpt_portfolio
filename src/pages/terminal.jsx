@@ -1,41 +1,80 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { ArrowLeft } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import {
+    projectService,
+    techStackService,
+    blogService
+} from "@/lib/appwrite-service";
 
 export default function Terminal() {
     const [commands, setCommands] = useState([]);
     const [currentCommand, setCurrentCommand] = useState("");
     const [isTyping, setIsTyping] = useState(false);
 
-    const terminalCommands = [
-        {
-            command: "whoami",
-            output: "Full-Stack Developer | Mobile Development Enthusiast"
-        },
-        {
-            command: "cat skills.txt",
-            output: `Frontend: React, Next.js, Vue.js, JavaScript, HTML5, CSS3, Tailwind CSS
-Backend: Node.js, Express.js, PHP, Laravel
-Database: MongoDB, MySQL, PostgreSQL
-Mobile: React Native, Acode, Termux
-Tools: Git, Docker, AWS, Vercel, Netlify`
-        },
-        {
-            command: "ls projects/",
-            output: "e-commerce-platform/    task-management-app/    mobile-weather-app/\nreal-time-chat/         analytics-dashboard/    blog-platform/"
-        },
-        {
-            command: 'echo "Contact me for amazing projects!"',
-            output: "Contact me for amazing projects!"
-        },
-        {
-            command:
-                "curl -s \"https://api.github.com/users/codecpt\" | jq '.public_repos'",
-            output: "42"
-        }
-    ];
+    // Fetch real data
+    const { data: projectsData } = useQuery({
+        queryKey: ["projects-terminal"],
+        queryFn: () => projectService.list({ limit: 6 })
+    });
+
+    const { data: techData } = useQuery({
+        queryKey: ["tech-terminal"],
+        queryFn: () => techStackService.list({ limit: 100 })
+    });
+
+    const { data: blogData } = useQuery({
+        queryKey: ["blog-terminal"],
+        queryFn: () => blogService.list({ limit: 3 })
+    });
+
+    const projects = projectsData?.documents || [];
+    const techStacks = techData?.documents || [];
+    const blogPosts = blogData?.documents || [];
 
     useEffect(() => {
+        if (!projects.length || !techStacks.length) return;
+
+        const generateCommands = () => {
+            const projectList = projects.map(p => `${p.title}/`).join("    ");
+
+            const techList = techStacks
+                .map(t => `${t.name} (${t.progress}%)`)
+                .join("\n");
+
+            const blogList = blogPosts.map(b => `- ${b.title}`).join("\n");
+
+            return [
+                {
+                    command: "whoami",
+                    output: "Full-Stack Developer | Mobile Development Enthusiast"
+                },
+                {
+                    command: "cat skills.txt",
+                    output: techList || "Loading skills..."
+                },
+                {
+                    command: "ls projects/",
+                    output: projectList || "No projects found"
+                },
+                {
+                    command: "cat recent-posts.md",
+                    output: blogList || "No blog posts yet"
+                },
+                {
+                    command: 'echo "Total Projects: $(ls projects/ | wc -l)"',
+                    output: `Total Projects: ${projects.length}`
+                },
+                {
+                    command: 'echo "Contact me for amazing projects!"',
+                    output: "Contact me for amazing projects!\n\n📧 Email: codingrot001@gmail.com\n📱 Phone: +234 (9) 033 747 946"
+                }
+            ];
+        };
+
+        const terminalCommands = generateCommands();
+
         const runCommands = async () => {
             for (let i = 0; i < terminalCommands.length; i++) {
                 setIsTyping(true);
@@ -54,7 +93,7 @@ Tools: Git, Docker, AWS, Vercel, Netlify`
         };
 
         runCommands();
-    }, []);
+    }, [projects, techStacks, blogPosts]);
 
     return (
         <div className="min-h-screen bg-black text-green-400 p-8">
@@ -128,6 +167,9 @@ Tools: Git, Docker, AWS, Vercel, Netlify`
                     <p className="text-gray-400">
                         <span className="text-yellow-400">💡</span> Easter Egg
                         Found! You discovered the terminal interface.
+                    </p>
+                    <p className="text-gray-500 text-sm mt-2">
+                        Data is loaded live from Appwrite database
                     </p>
                 </div>
             </div>

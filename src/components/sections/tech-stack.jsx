@@ -1,18 +1,32 @@
 import { motion } from "framer-motion";
 import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import TechCard from "@/components/ui/tech-card";
 import { useQuery } from "@tanstack/react-query";
-import { techStackService } from "@/lib/appwrite-service";
+import { techStackService, categoryService } from "@/lib/appwrite-service";
+import { Button } from "@/components/ui/button";
 
 export default function TechStack() {
     const sectionRef = useRef(null);
     const isVisible = useIntersectionObserver(sectionRef, { threshold: 0.1 });
+    const [activeCategory, setActiveCategory] = useState("all");
 
-    const { data: techStacks = [], isLoading } = useQuery({
-        queryKey: ["tech-stacks"],
-        queryFn: () => techStackService.list()
+    // Fetch categories
+    const { data: categories = [] } = useQuery({
+        queryKey: ["categories", "tech"],
+        queryFn: () => categoryService.list("tech")
     });
+
+    // Fetch tech stacks
+    const { data: techStacksData, isLoading } = useQuery({
+        queryKey: ["tech-stacks", activeCategory],
+        queryFn: () =>
+            techStackService.list({
+                category: activeCategory === "all" ? null : activeCategory
+            })
+    });
+
+    const techStacks = techStacksData?.documents || [];
 
     return (
         <section
@@ -35,6 +49,48 @@ export default function TechStack() {
                     </p>
                 </motion.div>
 
+                {/* Category Filters */}
+                {categories.length > 0 && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={isVisible ? { opacity: 1, y: 0 } : {}}
+                        transition={{ duration: 0.8, delay: 0.2 }}
+                        className="flex flex-wrap justify-center gap-4 mb-12"
+                    >
+                        <Button
+                            variant={
+                                activeCategory === "all" ? "default" : "outline"
+                            }
+                            onClick={() => setActiveCategory("all")}
+                            className={`px-6 py-2 rounded-full font-semibold transition-all duration-300 ${
+                                activeCategory === "all"
+                                    ? "bg-blue-500 text-white"
+                                    : "border-2 border-current hover:bg-current hover:text-white"
+                            }`}
+                        >
+                            All
+                        </Button>
+                        {categories.map(category => (
+                            <Button
+                                key={category.$id}
+                                variant={
+                                    activeCategory === category.slug
+                                        ? "default"
+                                        : "outline"
+                                }
+                                onClick={() => setActiveCategory(category.slug)}
+                                className={`px-6 py-2 rounded-full font-semibold transition-all duration-300 ${
+                                    activeCategory === category.slug
+                                        ? "bg-blue-500 text-white"
+                                        : "border-2 border-current hover:bg-current hover:text-white"
+                                }`}
+                            >
+                                {category.name}
+                            </Button>
+                        ))}
+                    </motion.div>
+                )}
+
                 {isLoading ? (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {Array.from({ length: 8 }).map((_, index) => (
@@ -47,7 +103,7 @@ export default function TechStack() {
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {techStacks.map((tech, index) => (
                             <motion.div
-                                key={tech.$id} // Use $id instead of id
+                                key={tech.$id}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={isVisible ? { opacity: 1, y: 0 } : {}}
                                 transition={{
@@ -58,6 +114,14 @@ export default function TechStack() {
                                 <TechCard {...tech} />
                             </motion.div>
                         ))}
+                    </div>
+                )}
+
+                {techStacks.length === 0 && !isLoading && (
+                    <div className="text-center py-12">
+                        <p className="text-gray-400">
+                            No technologies found for this category.
+                        </p>
                     </div>
                 )}
 

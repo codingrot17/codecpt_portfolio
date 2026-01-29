@@ -26,7 +26,23 @@ export const projectService = {
                 COLLECTIONS.PROJECTS,
                 [Query.orderDesc("$createdAt")]
             );
-            return response.documents;
+
+            // Transform data to match your frontend expectations
+            return response.documents.map(doc => ({
+                ...doc,
+                // Convert comma-separated strings to arrays
+                technologies: doc.technologies
+                    ? doc.technologies.split(",").map(t => t.trim())
+                    : [],
+                features: doc.features
+                    ? doc.features.split(",").map(f => f.trim())
+                    : [],
+                // Ensure URLs have defaults
+                imageUrl: doc.imageUrl || "",
+                liveUrl: doc.liveUrl || "",
+                githubUrl: doc.githubUrl || "",
+                featured: doc.featured || false
+            }));
         } catch (error) {
             console.error("Error listing projects:", error);
             throw error;
@@ -35,11 +51,25 @@ export const projectService = {
 
     async get(id) {
         try {
-            return await databases.getDocument(
+            const doc = await databases.getDocument(
                 DATABASE_ID,
                 COLLECTIONS.PROJECTS,
                 id
             );
+
+            return {
+                ...doc,
+                technologies: doc.technologies
+                    ? doc.technologies.split(",").map(t => t.trim())
+                    : [],
+                features: doc.features
+                    ? doc.features.split(",").map(f => f.trim())
+                    : [],
+                imageUrl: doc.imageUrl || "",
+                liveUrl: doc.liveUrl || "",
+                githubUrl: doc.githubUrl || "",
+                featured: doc.featured || false
+            };
         } catch (error) {
             console.error("Error getting project:", error);
             throw error;
@@ -56,8 +86,13 @@ export const projectService = {
                     title: data.title,
                     description: data.description,
                     category: data.category,
-                    technologies: data.technologies || [],
-                    features: data.features || [],
+                    // Convert arrays to comma-separated strings for storage
+                    technologies: Array.isArray(data.technologies)
+                        ? data.technologies.join(", ")
+                        : data.technologies || "",
+                    features: Array.isArray(data.features)
+                        ? data.features.join(", ")
+                        : data.features || "",
                     liveUrl: data.liveUrl || "",
                     githubUrl: data.githubUrl || "",
                     imageUrl: data.imageUrl || "",
@@ -72,11 +107,21 @@ export const projectService = {
 
     async update(id, data) {
         try {
+            const updateData = { ...data };
+
+            // Convert arrays to strings if present
+            if (data.technologies && Array.isArray(data.technologies)) {
+                updateData.technologies = data.technologies.join(", ");
+            }
+            if (data.features && Array.isArray(data.features)) {
+                updateData.features = data.features.join(", ");
+            }
+
             return await databases.updateDocument(
                 DATABASE_ID,
                 COLLECTIONS.PROJECTS,
                 id,
-                data
+                updateData
             );
         } catch (error) {
             console.error("Error updating project:", error);
@@ -105,7 +150,7 @@ export const blogService = {
             const response = await databases.listDocuments(
                 DATABASE_ID,
                 COLLECTIONS.BLOG_POSTS,
-                [Query.orderDesc("$createdAt")] // Use $createdAt instead of publishedAt
+                [Query.orderDesc("$createdAt")]
             );
             return response.documents;
         } catch (error) {
@@ -216,10 +261,11 @@ export const techStackService = {
                 ID.unique(),
                 {
                     name: data.name,
-                    icon: data.icon || "",
+                    icon: data.icon || "", // Can be emoji or URL
                     progress: data.progress || 0,
                     category: data.category,
-                    color: data.color || "#4F46E5"
+                    color: data.color || "bg-blue-500/20",
+                    documentationUrl: data.documentationUrl || ""
                 }
             );
         } catch (error) {
@@ -263,7 +309,7 @@ export const contactService = {
             const response = await databases.listDocuments(
                 DATABASE_ID,
                 COLLECTIONS.CONTACT_MESSAGES,
-                [Query.orderDesc("$createdAt")] // Use $createdAt
+                [Query.orderDesc("$createdAt")]
             );
             return response.documents;
         } catch (error) {
@@ -282,12 +328,29 @@ export const contactService = {
                     name: data.name,
                     email: data.email,
                     subject: data.subject || "",
-                    message: data.message
-                    // Appwrite automatically adds $createdAt
+                    message: data.message,
+                    isRead: false
                 }
             );
         } catch (error) {
             console.error("Error creating contact message:", error);
+            throw error;
+        }
+    },
+
+    async markAsRead(id) {
+        try {
+            return await databases.updateDocument(
+                DATABASE_ID,
+                COLLECTIONS.CONTACT_MESSAGES,
+                id,
+                {
+                    isRead: true,
+                    respondedAt: new Date().toISOString()
+                }
+            );
+        } catch (error) {
+            console.error("Error marking message as read:", error);
             throw error;
         }
     },
