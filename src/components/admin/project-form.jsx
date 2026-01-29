@@ -18,11 +18,10 @@ import {
     DialogTrigger
 } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { Plus, Edit, X } from "lucide-react";
+import { projectService } from "@/lib/appwrite-service";
+import { Plus, Edit } from "lucide-react";
 
 const projectCategories = [
     { value: "web-development", label: "Web Development" },
@@ -49,16 +48,14 @@ export function ProjectForm({ project, onClose }) {
         featured: project?.featured || false
     });
 
-    const [newTechnology, setNewTechnology] = useState("");
-    const [newFeature, setNewFeature] = useState("");
-
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
+    // Use Appwrite service
     const createMutation = useMutation({
-        mutationFn: data => apiRequest("POST", "/api/projects", data),
+        mutationFn: data => projectService.create(data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+            queryClient.invalidateQueries({ queryKey: ["projects"] });
             toast({
                 title: "Success",
                 description: "Project created successfully"
@@ -77,20 +74,19 @@ export function ProjectForm({ project, onClose }) {
                 featured: false
             });
         },
-        onError: () => {
+        onError: error => {
             toast({
                 title: "Error",
-                description: "Failed to create project",
+                description: error.message || "Failed to create project",
                 variant: "destructive"
             });
         }
     });
 
     const updateMutation = useMutation({
-        mutationFn: data =>
-            apiRequest("PUT", `/api/projects/${project?.id}`, data),
+        mutationFn: data => projectService.update(project.$id, data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["/api/projects"] });
+            queryClient.invalidateQueries({ queryKey: ["projects"] });
             toast({
                 title: "Success",
                 description: "Project updated successfully"
@@ -98,10 +94,10 @@ export function ProjectForm({ project, onClose }) {
             setOpen(false);
             onClose?.();
         },
-        onError: () => {
+        onError: error => {
             toast({
                 title: "Error",
-                description: "Failed to update project",
+                description: error.message || "Failed to update project",
                 variant: "destructive"
             });
         }
@@ -112,42 +108,6 @@ export function ProjectForm({ project, onClose }) {
         project
             ? updateMutation.mutate(formData)
             : createMutation.mutate(formData);
-    };
-
-    const addTechnology = () => {
-        const tech = newTechnology.trim();
-        if (tech && !formData.technologies.includes(tech)) {
-            setFormData({
-                ...formData,
-                technologies: [...formData.technologies, tech]
-            });
-            setNewTechnology("");
-        }
-    };
-
-    const removeTechnology = tech => {
-        setFormData({
-            ...formData,
-            technologies: formData.technologies.filter(t => t !== tech)
-        });
-    };
-
-    const addFeature = () => {
-        const feature = newFeature.trim();
-        if (feature && !formData.features.includes(feature)) {
-            setFormData({
-                ...formData,
-                features: [...formData.features, feature]
-            });
-            setNewFeature("");
-        }
-    };
-
-    const removeFeature = feature => {
-        setFormData({
-            ...formData,
-            features: formData.features.filter(f => f !== feature)
-        });
     };
 
     const isLoading = createMutation.isPending || updateMutation.isPending;
@@ -234,6 +194,60 @@ export function ProjectForm({ project, onClose }) {
                                 ))}
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    {/* Image URL */}
+                    <div className="space-y-2">
+                        <Label htmlFor="imageUrl" className="text-white">
+                            Image URL
+                        </Label>
+                        <Input
+                            id="imageUrl"
+                            value={formData.imageUrl}
+                            onChange={e =>
+                                setFormData({
+                                    ...formData,
+                                    imageUrl: e.target.value
+                                })
+                            }
+                            className="bg-slate-700 border-slate-600 text-white"
+                        />
+                    </div>
+
+                    {/* Live URL */}
+                    <div className="space-y-2">
+                        <Label htmlFor="liveUrl" className="text-white">
+                            Live URL
+                        </Label>
+                        <Input
+                            id="liveUrl"
+                            value={formData.liveUrl}
+                            onChange={e =>
+                                setFormData({
+                                    ...formData,
+                                    liveUrl: e.target.value
+                                })
+                            }
+                            className="bg-slate-700 border-slate-600 text-white"
+                        />
+                    </div>
+
+                    {/* GitHub URL */}
+                    <div className="space-y-2">
+                        <Label htmlFor="githubUrl" className="text-white">
+                            GitHub URL
+                        </Label>
+                        <Input
+                            id="githubUrl"
+                            value={formData.githubUrl}
+                            onChange={e =>
+                                setFormData({
+                                    ...formData,
+                                    githubUrl: e.target.value
+                                })
+                            }
+                            className="bg-slate-700 border-slate-600 text-white"
+                        />
                     </div>
 
                     {/* Featured */}

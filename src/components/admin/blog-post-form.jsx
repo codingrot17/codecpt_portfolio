@@ -21,6 +21,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { blogService } from "@/lib/appwrite-service";
 import { Plus, Edit } from "lucide-react";
 
 const blogCategories = [
@@ -49,9 +50,9 @@ export function BlogPostForm({ blogPost, onClose }) {
     const queryClient = useQueryClient();
 
     const createMutation = useMutation({
-        mutationFn: data => apiRequest("POST", "/api/blog-posts", data),
+        mutationFn: data => blogService.create(data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["/api/blog-posts"] });
+            queryClient.invalidateQueries({ queryKey: ["blog-posts"] });
             toast({
                 title: "Success",
                 description: "Blog post created successfully"
@@ -78,10 +79,9 @@ export function BlogPostForm({ blogPost, onClose }) {
     });
 
     const updateMutation = useMutation({
-        mutationFn: data =>
-            apiRequest("PUT", `/api/blog-posts/${blogPost?.id}`, data),
+        mutationFn: data => blogService.update(blogPost.$id, data),
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["/api/blog-posts"] });
+            queryClient.invalidateQueries({ queryKey: ["blog-posts"] });
             toast({
                 title: "Success",
                 description: "Blog post updated successfully"

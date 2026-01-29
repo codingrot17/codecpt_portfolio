@@ -3,13 +3,15 @@ import { useIntersectionObserver } from "@/hooks/use-intersection-observer";
 import { useRef } from "react";
 import TechCard from "@/components/ui/tech-card";
 import { useQuery } from "@tanstack/react-query";
+import { techStackService } from "@/lib/appwrite-service";
 
 export default function TechStack() {
     const sectionRef = useRef(null);
     const isVisible = useIntersectionObserver(sectionRef, { threshold: 0.1 });
 
     const { data: techStacks = [], isLoading } = useQuery({
-        queryKey: ["/api/tech-stacks"]
+        queryKey: ["tech-stacks"],
+        queryFn: () => techStackService.list()
     });
 
     return (
@@ -45,7 +47,7 @@ export default function TechStack() {
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                         {techStacks.map((tech, index) => (
                             <motion.div
-                                key={tech.id}
+                                key={tech.$id} // Use $id instead of id
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={isVisible ? { opacity: 1, y: 0 } : {}}
                                 transition={{

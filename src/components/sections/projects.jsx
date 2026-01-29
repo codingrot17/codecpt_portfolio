@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Github, ArrowRight } from "lucide-react";
 import ProjectModal from "@/components/ui/project-modal";
+import { projectService } from "@/lib/appwrite-service";
 
 export default function Projects() {
     const sectionRef = useRef(null);
@@ -12,15 +13,21 @@ export default function Projects() {
     const [selectedProject, setSelectedProject] = useState(null);
     const [activeFilter, setActiveFilter] = useState("all");
 
-    const { data: projects = [], isLoading } = useQuery({
-        queryKey: ["/api/projects"]
-    });
+    // Use Appwrite service instead of API endpoint
 
+    const {
+        data: projects = [],
+        isLoading,
+        error
+    } = useQuery({
+        queryKey: ["projects"],
+        queryFn: () => projectService.list()
+    });
     const filters = [
         { id: "all", label: "All Projects", color: "bg-blue-500" },
-        { id: "frontend", label: "Frontend", color: "bg-blue-500" },
-        { id: "fullstack", label: "Full-Stack", color: "bg-purple-500" },
-        { id: "mobile", label: "Mobile", color: "bg-green-500" }
+        { id: "web-development", label: "Web Dev", color: "bg-blue-500" },
+        { id: "mobile-development", label: "Mobile", color: "bg-green-500" },
+        { id: "fullstack", label: "Full-Stack", color: "bg-purple-500" }
     ];
 
     const filteredProjects = projects.filter(
@@ -42,6 +49,19 @@ export default function Projects() {
         );
     }
 
+    if (error) {
+        return (
+            <section id="projects" className="section-padding" ref={sectionRef}>
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="text-center">
+                        <p className="text-red-400">
+                            Error loading projects: {error.message}
+                        </p>
+                    </div>
+                </div>
+            </section>
+        );
+    }
     return (
         <section id="projects" className="section-padding" ref={sectionRef}>
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -90,7 +110,7 @@ export default function Projects() {
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                     {filteredProjects.map((project, index) => (
                         <motion.div
-                            key={project.id}
+                            key={project.$id}
                             initial={{ opacity: 0, y: 20 }}
                             animate={isVisible ? { opacity: 1, y: 0 } : {}}
                             transition={{ duration: 0.8, delay: index * 0.1 }}

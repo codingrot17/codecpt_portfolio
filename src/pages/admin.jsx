@@ -25,6 +25,12 @@ import {
 } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 import { apiRequest } from "../lib/queryClient";
+import {
+    projectService,
+    blogService,
+    techStackService,
+    contactService
+} from "@/lib/appwrite-service";
 import { useAuth } from "../hooks/useAuth";
 import LoginForm from "../components/auth/login-form";
 import AuthProvider from "../components/auth/auth-provider";
@@ -39,57 +45,54 @@ function AdminDashboard() {
     const { logout } = useAuth();
 
     const { data: techStacks = [] } = useQuery({
-        queryKey: ["/api/tech-stacks"]
+        queryKey: ["tech-stacks"],
+        queryFn: () => techStackService.list()
     });
 
     const { data: blogPosts = [] } = useQuery({
-        queryKey: ["/api/blog-posts"]
+        queryKey: ["blog-posts"],
+        queryFn: () => blogService.list()
     });
 
     const { data: projects = [] } = useQuery({
-        queryKey: ["/api/projects"]
+        queryKey: ["projects"],
+        queryFn: () => projectService.list()
     });
 
     const { data: contactMessages = [] } = useQuery({
-        queryKey: ["/api/contact-messages"]
+        queryKey: ["contact-messages"],
+        queryFn: () => contactService.list()
     });
 
     const deleteTechStackMutation = useMutation({
-        mutationFn: id => apiRequest("DELETE", `/api/tech-stacks/${id}`),
+        mutationFn: id => techStackService.delete(id),
         onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ["/api/tech-stacks"]
-            });
+            queryClient.invalidateQueries({ queryKey: ["tech-stacks"] });
+
             toast({ title: "Success", description: "Tech stack deleted" });
         }
     });
 
     const deleteBlogPostMutation = useMutation({
-        mutationFn: id => apiRequest("DELETE", `/api/blog-posts/${id}`),
+        mutationFn: id => blogService.delete(id),
         onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ["/api/blog-posts"]
-            });
+            queryClient.invalidateQueries({ queryKey: ["blog-posts"] });
             toast({ title: "Success", description: "Blog post deleted" });
         }
     });
 
     const deleteProjectMutation = useMutation({
-        mutationFn: id => apiRequest("DELETE", `/api/projects/${id}`),
+        mutationFn: id => projectService.delete(id),
         onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ["/api/projects"]
-            });
+            queryClient.invalidateQueries({ queryKey: ["projects"] });
             toast({ title: "Success", description: "Project deleted" });
         }
     });
 
     const deleteContactMessageMutation = useMutation({
-        mutationFn: id => apiRequest("DELETE", `/api/contact-messages/${id}`),
+        mutationFn: id => contactService.delete(id),
         onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ["/api/contact-messages"]
-            });
+            queryClient.invalidateQueries({ queryKey: ["contact-messages"] });
             toast({ title: "Success", description: "Message deleted" });
         }
     });

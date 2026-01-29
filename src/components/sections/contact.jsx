@@ -19,6 +19,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { insertContactMessageSchema } from "@shared/schema";
 import { apiRequest } from "@/lib/queryClient";
+import { contactService } from "@/lib/appwrite-service";
 
 export default function Contact() {
   const sectionRef = useRef(null);
@@ -38,8 +39,7 @@ export default function Contact() {
 
   const mutation = useMutation({
     mutationFn: async (data) => {
-      const response = await apiRequest("POST", "/api/contact", data);
-      return response.json();
+        return await contactService.create(data);
     },
     onSuccess: () => {
       setIsSubmitted(true);

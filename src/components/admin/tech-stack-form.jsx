@@ -20,6 +20,7 @@ import { Slider } from "@/components/ui/slider";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { techStackService } from "@/lib/appwrite-service";
 import { Plus, Edit } from "lucide-react";
 
 const techCategories = [
@@ -56,7 +57,7 @@ export function TechStackForm({ techStack, onClose }) {
     const queryClient = useQueryClient();
 
     const createMutation = useMutation({
-        mutationFn: data => apiRequest("POST", "/api/tech-stacks", data),
+        mutationFn: data => techStackService.create(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["tech-stacks"] });
             toast({
@@ -83,8 +84,7 @@ export function TechStackForm({ techStack, onClose }) {
     });
 
     const updateMutation = useMutation({
-        mutationFn: data =>
-            apiRequest("PUT", `/api/tech-stacks/${techStack?.id}`, data),
+        mutationFn: data => techStackService.update(techStack.$id, data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ["tech-stacks"] });
             toast({
