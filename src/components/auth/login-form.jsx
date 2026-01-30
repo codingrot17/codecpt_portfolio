@@ -3,28 +3,41 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Lock, User } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 
-export default function LoginForm({ onLogin, isLoading }) {
-    const [username, setUsername] = useState("");
+export default function LoginForm({ onLogin, onSignup, isLoading }) {
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [name, setName] = useState("");
     const [showPassword, setShowPassword] = useState(false);
-    const { toast } = useToast();
+    const [isSignupMode, setIsSignupMode] = useState(false);
+    const [error, setError] = useState("");
 
-    const handleSubmit = e => {
+    const handleSubmit = async e => {
         e.preventDefault();
+        setError("");
 
-        if (!username || !password) {
-            toast({
-                title: "Error",
-                description: "Please fill in all fields",
-                variant: "destructive"
-            });
+        if (!email || !password) {
+            setError("Please fill in all fields");
             return;
         }
 
-        onLogin({ username, password });
+        if (isSignupMode && !name) {
+            setError("Please enter your name");
+            return;
+        }
+
+        if (isSignupMode) {
+            const result = await onSignup(email, password, name);
+            if (!result.success) {
+                setError(result.error);
+            }
+        } else {
+            const result = await onLogin(email, password);
+            if (!result.success) {
+                setError(result.error);
+            }
+        }
     };
 
     return (
@@ -35,27 +48,46 @@ export default function LoginForm({ onLogin, isLoading }) {
                         <Lock className="h-6 w-6 text-white" />
                     </div>
                     <CardTitle className="text-2xl font-bold text-white">
-                        Admin Login
+                        {isSignupMode ? "Create Admin Account" : "Admin Login"}
                     </CardTitle>
                     <p className="text-gray-400">
-                        Enter your credentials to access the dashboard
+                        {isSignupMode
+                            ? "Sign up to manage your portfolio"
+                            : "Enter your credentials to access the dashboard"}
                     </p>
                 </CardHeader>
 
                 <CardContent>
                     <form onSubmit={handleSubmit} className="space-y-4">
+                        {isSignupMode && (
+                            <div className="space-y-2">
+                                <Label htmlFor="name" className="text-white">
+                                    Full Name
+                                </Label>
+                                <Input
+                                    id="name"
+                                    type="text"
+                                    placeholder="Enter your name"
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
+                                    className="bg-slate-700 border-slate-600 text-white placeholder-gray-400"
+                                    disabled={isLoading}
+                                />
+                            </div>
+                        )}
+
                         <div className="space-y-2">
-                            <Label htmlFor="username" className="text-white">
-                                Username
+                            <Label htmlFor="email" className="text-white">
+                                Email
                             </Label>
                             <div className="relative">
-                                <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                                 <Input
-                                    id="username"
-                                    type="text"
-                                    placeholder="Enter your username"
-                                    value={username}
-                                    onChange={e => setUsername(e.target.value)}
+                                    id="email"
+                                    type="email"
+                                    placeholder="Enter your email"
+                                    value={email}
+                                    onChange={e => setEmail(e.target.value)}
                                     className="pl-10 bg-slate-700 border-slate-600 text-white placeholder-gray-400"
                                     disabled={isLoading}
                                 />
@@ -96,13 +128,39 @@ export default function LoginForm({ onLogin, isLoading }) {
                             </div>
                         </div>
 
+                        {error && (
+                            <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-2 rounded-md text-sm">
+                                {error}
+                            </div>
+                        )}
+
                         <Button
                             type="submit"
                             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                             disabled={isLoading}
                         >
-                            {isLoading ? "Signing in..." : "Sign in"}
+                            {isLoading
+                                ? "Processing..."
+                                : isSignupMode
+                                ? "Create Account"
+                                : "Sign in"}
                         </Button>
+
+                        <div className="text-center">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setIsSignupMode(!isSignupMode);
+                                    setError("");
+                                }}
+                                className="text-sm text-blue-400 hover:text-blue-300"
+                                disabled={isLoading}
+                            >
+                                {isSignupMode
+                                    ? "Already have an account? Sign in"
+                                    : "Don't have an account? Sign up"}
+                            </button>
+                        </div>
                     </form>
                 </CardContent>
             </Card>

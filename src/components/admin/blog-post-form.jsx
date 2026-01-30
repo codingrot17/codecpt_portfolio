@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Select,
     SelectContent,
@@ -17,37 +19,42 @@ import {
     DialogTitle,
     DialogTrigger
 } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { blogService } from "@/lib/appwrite-service";
 import { Plus, Edit } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { blogService, categoryService } from "@/lib/appwrite-service";
 
-const blogCategories = [
-    { value: "technology", label: "Technology" },
-    { value: "web-development", label: "Web Development" },
-    { value: "mobile-development", label: "Mobile Development" },
-    { value: "programming", label: "Programming" },
-    { value: "tutorial", label: "Tutorial" },
-    { value: "opinion", label: "Opinion" },
-    { value: "news", label: "News" }
-];
-
-export function BlogPostForm({ blogPost, onClose }) {
+export function BlogPostForm({ blogPost }) {
     const [open, setOpen] = useState(false);
     const [formData, setFormData] = useState({
         title: blogPost?.title || "",
-        slug: blogPost?.slug || "",
         excerpt: blogPost?.excerpt || "",
         content: blogPost?.content || "",
-        category: blogPost?.category || "technology",
-        imageUrl: blogPost?.imageUrl || "",
-        featured: blogPost?.featured || false
+        category: blogPost?.category || "",
+        featured: blogPost?.featured || false,
+        imageUrl: blogPost?.imageUrl || ""
     });
 
     const { toast } = useToast();
     const queryClient = useQueryClient();
+
+    // Fetch blog categories
+    const { data: categories = [] } = useQuery({
+        queryKey: ["categories", "blog"],
+        queryFn: () => categoryService.list("blog")
+    });
+
+    useEffect(() => {
+        if (blogPost) {
+            setFormData({
+                title: blogPost.title,
+                excerpt: blogPost.excerpt,
+                content: blogPost.content,
+                category: blogPost.category,
+                featured: blogPost.featured || false,
+                imageUrl: blogPost.imageUrl || ""
+            });
+        }
+    }, [blogPost]);
 
     const createMutation = useMutation({
         mutationFn: data => blogService.create(data),
@@ -58,21 +65,19 @@ export function BlogPostForm({ blogPost, onClose }) {
                 description: "Blog post created successfully"
             });
             setOpen(false);
-            onClose?.();
             setFormData({
                 title: "",
-                slug: "",
                 excerpt: "",
                 content: "",
-                category: "technology",
-                imageUrl: "",
-                featured: false
+                category: "",
+                featured: false,
+                imageUrl: ""
             });
         },
-        onError: () => {
+        onError: error => {
             toast({
                 title: "Error",
-                description: "Failed to create blog post",
+                description: error.message || "Failed to create blog post",
                 variant: "destructive"
             });
         }
@@ -87,12 +92,11 @@ export function BlogPostForm({ blogPost, onClose }) {
                 description: "Blog post updated successfully"
             });
             setOpen(false);
-            onClose?.();
         },
-        onError: () => {
+        onError: error => {
             toast({
                 title: "Error",
-                description: "Failed to update blog post",
+                description: error.message || "Failed to update blog post",
                 variant: "destructive"
             });
         }
@@ -105,20 +109,6 @@ export function BlogPostForm({ blogPost, onClose }) {
             : createMutation.mutate(formData);
     };
 
-    const generateSlug = title =>
-        title
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-")
-            .replace(/^-+|-+$/g, "");
-
-    const handleTitleChange = title => {
-        setFormData({
-            ...formData,
-            title,
-            slug: generateSlug(title)
-        });
-    };
-
     const isLoading = createMutation.isPending || updateMutation.isPending;
 
     return (
@@ -129,14 +119,14 @@ export function BlogPostForm({ blogPost, onClose }) {
                         <Edit className="h-4 w-4" />
                     </Button>
                 ) : (
-                    <Button className="bg-green-600 hover:bg-green-700">
+                    <Button className="bg-purple-600 hover:bg-purple-700">
                         <Plus className="h-4 w-4 mr-2" />
                         Add Blog Post
                     </Button>
                 )}
             </DialogTrigger>
 
-            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto bg-slate-800 border-slate-700">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700">
                 <DialogHeader>
                     <DialogTitle className="text-white">
                         {blogPost ? "Edit Blog Post" : "Add New Blog Post"}
@@ -151,23 +141,10 @@ export function BlogPostForm({ blogPost, onClose }) {
                         <Input
                             id="title"
                             value={formData.title}
-                            onChange={e => handleTitleChange(e.target.value)}
-                            className="bg-slate-700 border-slate-600 text-white"
-                            required
-                        />
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label htmlFor="slug" className="text-white">
-                            Slug
-                        </Label>
-                        <Input
-                            id="slug"
-                            value={formData.slug}
                             onChange={e =>
                                 setFormData({
                                     ...formData,
-                                    slug: e.target.value
+                                    title: e.target.value
                                 })
                             }
                             className="bg-slate-700 border-slate-600 text-white"
@@ -188,7 +165,7 @@ export function BlogPostForm({ blogPost, onClose }) {
                                     excerpt: e.target.value
                                 })
                             }
-                            rows={3}
+                            rows={2}
                             className="bg-slate-700 border-slate-600 text-white"
                             required
                         />
@@ -196,7 +173,7 @@ export function BlogPostForm({ blogPost, onClose }) {
 
                     <div className="space-y-2">
                         <Label htmlFor="content" className="text-white">
-                            Content
+                            Content (Markdown supported)
                         </Label>
                         <Textarea
                             id="content"
@@ -208,7 +185,7 @@ export function BlogPostForm({ blogPost, onClose }) {
                                 })
                             }
                             rows={8}
-                            className="bg-slate-700 border-slate-600 text-white"
+                            className="bg-slate-700 border-slate-600 text-white font-mono text-sm"
                             required
                         />
                     </div>
@@ -222,16 +199,34 @@ export function BlogPostForm({ blogPost, onClose }) {
                             }
                         >
                             <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                                <SelectValue />
+                                <SelectValue placeholder="Select category" />
                             </SelectTrigger>
                             <SelectContent className="bg-slate-700 border-slate-600">
-                                {blogCategories.map(c => (
-                                    <SelectItem key={c.value} value={c.value}>
-                                        {c.label}
+                                {categories.map(cat => (
+                                    <SelectItem key={cat.$id} value={cat.slug}>
+                                        {cat.name}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="imageUrl" className="text-white">
+                            Image URL (Optional)
+                        </Label>
+                        <Input
+                            id="imageUrl"
+                            value={formData.imageUrl}
+                            onChange={e =>
+                                setFormData({
+                                    ...formData,
+                                    imageUrl: e.target.value
+                                })
+                            }
+                            placeholder="https://example.com/image.jpg"
+                            className="bg-slate-700 border-slate-600 text-white"
+                        />
                     </div>
 
                     <div className="flex items-center space-x-2">
@@ -239,18 +234,18 @@ export function BlogPostForm({ blogPost, onClose }) {
                             id="featured"
                             checked={formData.featured}
                             onCheckedChange={checked =>
-                                setFormData({
-                                    ...formData,
-                                    featured: Boolean(checked)
-                                })
+                                setFormData({ ...formData, featured: checked })
                             }
                         />
-                        <Label htmlFor="featured" className="text-white">
-                            Featured post
+                        <Label
+                            htmlFor="featured"
+                            className="text-white cursor-pointer"
+                        >
+                            Featured Post
                         </Label>
                     </div>
 
-                    <div className="flex justify-end space-x-2 pt-4">
+                    <div className="flex justify-end gap-2 pt-4">
                         <Button
                             type="button"
                             variant="outline"
@@ -271,8 +266,4 @@ export function BlogPostForm({ blogPost, onClose }) {
             </DialogContent>
         </Dialog>
     );
-}
-
-export function BlogPostFormTrigger() {
-    return <BlogPostForm />;
 }

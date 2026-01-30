@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Select,
     SelectContent,
@@ -17,33 +19,20 @@ import {
     DialogTitle,
     DialogTrigger
 } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { projectService } from "@/lib/appwrite-service";
 import { Plus, Edit } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { projectService, categoryService } from "@/lib/appwrite-service";
 
-const projectCategories = [
-    { value: "web-development", label: "Web Development" },
-    { value: "mobile-development", label: "Mobile Development" },
-    { value: "desktop-application", label: "Desktop Application" },
-    { value: "api-development", label: "API Development" },
-    { value: "data-science", label: "Data Science" },
-    { value: "machine-learning", label: "Machine Learning" },
-    { value: "game-development", label: "Game Development" },
-    { value: "other", label: "Other" }
-];
-
-export function ProjectForm({ project, onClose }) {
+export function ProjectForm({ project }) {
     const [open, setOpen] = useState(false);
     const [formData, setFormData] = useState({
         title: project?.title || "",
         description: project?.description || "",
-        category: project?.category || "web-development",
-        technologies: project?.technologies || [],
-        features: project?.features || [],
-        liveUrl: project?.liveUrl || "",
+        technologies: project?.technologies?.join(", ") || "",
+        features: project?.features?.join(", ") || "",
+        category: project?.category || "",
         githubUrl: project?.githubUrl || "",
+        liveUrl: project?.liveUrl || "",
         imageUrl: project?.imageUrl || "",
         featured: project?.featured || false
     });
@@ -51,7 +40,28 @@ export function ProjectForm({ project, onClose }) {
     const { toast } = useToast();
     const queryClient = useQueryClient();
 
-    // Use Appwrite service
+    // Fetch project categories
+    const { data: categories = [] } = useQuery({
+        queryKey: ["categories", "project"],
+        queryFn: () => categoryService.list("project")
+    });
+
+    useEffect(() => {
+        if (project) {
+            setFormData({
+                title: project.title,
+                description: project.description,
+                technologies: project.technologies.join(", "),
+                features: project.features.join(", "),
+                category: project.category,
+                githubUrl: project.githubUrl || "",
+                liveUrl: project.liveUrl || "",
+                imageUrl: project.imageUrl || "",
+                featured: project.featured || false
+            });
+        }
+    }, [project]);
+
     const createMutation = useMutation({
         mutationFn: data => projectService.create(data),
         onSuccess: () => {
@@ -61,15 +71,14 @@ export function ProjectForm({ project, onClose }) {
                 description: "Project created successfully"
             });
             setOpen(false);
-            onClose?.();
             setFormData({
                 title: "",
                 description: "",
-                category: "web-development",
-                technologies: [],
-                features: [],
-                liveUrl: "",
+                technologies: "",
+                features: "",
+                category: "",
                 githubUrl: "",
+                liveUrl: "",
                 imageUrl: "",
                 featured: false
             });
@@ -92,7 +101,6 @@ export function ProjectForm({ project, onClose }) {
                 description: "Project updated successfully"
             });
             setOpen(false);
-            onClose?.();
         },
         onError: error => {
             toast({
@@ -105,9 +113,22 @@ export function ProjectForm({ project, onClose }) {
 
     const handleSubmit = e => {
         e.preventDefault();
+
+        const dataToSubmit = {
+            ...formData,
+            technologies: formData.technologies
+                .split(",")
+                .map(t => t.trim())
+                .filter(Boolean),
+            features: formData.features
+                .split(",")
+                .map(f => f.trim())
+                .filter(Boolean)
+        };
+
         project
-            ? updateMutation.mutate(formData)
-            : createMutation.mutate(formData);
+            ? updateMutation.mutate(dataToSubmit)
+            : createMutation.mutate(dataToSubmit);
     };
 
     const isLoading = createMutation.isPending || updateMutation.isPending;
@@ -120,14 +141,14 @@ export function ProjectForm({ project, onClose }) {
                         <Edit className="h-4 w-4" />
                     </Button>
                 ) : (
-                    <Button className="bg-purple-600 hover:bg-purple-700">
+                    <Button className="bg-blue-600 hover:bg-blue-700">
                         <Plus className="h-4 w-4 mr-2" />
                         Add Project
                     </Button>
                 )}
             </DialogTrigger>
 
-            <DialogContent className="sm:max-w-[700px] max-h-[80vh] overflow-y-auto bg-slate-800 border-slate-700">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto bg-slate-800 border-slate-700">
                 <DialogHeader>
                     <DialogTitle className="text-white">
                         {project ? "Edit Project" : "Add New Project"}
@@ -135,7 +156,6 @@ export function ProjectForm({ project, onClose }) {
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {/* Title */}
                     <div className="space-y-2">
                         <Label htmlFor="title" className="text-white">
                             Title
@@ -154,14 +174,12 @@ export function ProjectForm({ project, onClose }) {
                         />
                     </div>
 
-                    {/* Description */}
                     <div className="space-y-2">
                         <Label htmlFor="description" className="text-white">
                             Description
                         </Label>
                         <Textarea
                             id="description"
-                            rows={4}
                             value={formData.description}
                             onChange={e =>
                                 setFormData({
@@ -169,12 +187,51 @@ export function ProjectForm({ project, onClose }) {
                                     description: e.target.value
                                 })
                             }
+                            rows={3}
                             className="bg-slate-700 border-slate-600 text-white"
                             required
                         />
                     </div>
 
-                    {/* Category */}
+                    <div className="space-y-2">
+                        <Label htmlFor="technologies" className="text-white">
+                            Technologies (comma-separated)
+                        </Label>
+                        <Input
+                            id="technologies"
+                            value={formData.technologies}
+                            onChange={e =>
+                                setFormData({
+                                    ...formData,
+                                    technologies: e.target.value
+                                })
+                            }
+                            placeholder="React, Node.js, MongoDB"
+                            className="bg-slate-700 border-slate-600 text-white"
+                            required
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="features" className="text-white">
+                            Features (comma-separated)
+                        </Label>
+                        <Textarea
+                            id="features"
+                            value={formData.features}
+                            onChange={e =>
+                                setFormData({
+                                    ...formData,
+                                    features: e.target.value
+                                })
+                            }
+                            rows={2}
+                            placeholder="User authentication, Real-time updates"
+                            className="bg-slate-700 border-slate-600 text-white"
+                            required
+                        />
+                    </div>
+
                     <div className="space-y-2">
                         <Label className="text-white">Category</Label>
                         <Select
@@ -187,19 +244,56 @@ export function ProjectForm({ project, onClose }) {
                                 <SelectValue placeholder="Select category" />
                             </SelectTrigger>
                             <SelectContent className="bg-slate-700 border-slate-600">
-                                {projectCategories.map(c => (
-                                    <SelectItem key={c.value} value={c.value}>
-                                        {c.label}
+                                {categories.map(cat => (
+                                    <SelectItem key={cat.$id} value={cat.slug}>
+                                        {cat.name}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
                     </div>
 
-                    {/* Image URL */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="githubUrl" className="text-white">
+                                GitHub URL (Optional)
+                            </Label>
+                            <Input
+                                id="githubUrl"
+                                value={formData.githubUrl}
+                                onChange={e =>
+                                    setFormData({
+                                        ...formData,
+                                        githubUrl: e.target.value
+                                    })
+                                }
+                                placeholder="https://github.com/..."
+                                className="bg-slate-700 border-slate-600 text-white"
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="liveUrl" className="text-white">
+                                Live URL (Optional)
+                            </Label>
+                            <Input
+                                id="liveUrl"
+                                value={formData.liveUrl}
+                                onChange={e =>
+                                    setFormData({
+                                        ...formData,
+                                        liveUrl: e.target.value
+                                    })
+                                }
+                                placeholder="https://example.com"
+                                className="bg-slate-700 border-slate-600 text-white"
+                            />
+                        </div>
+                    </div>
+
                     <div className="space-y-2">
                         <Label htmlFor="imageUrl" className="text-white">
-                            Image URL
+                            Image URL (Optional)
                         </Label>
                         <Input
                             id="imageUrl"
@@ -210,65 +304,28 @@ export function ProjectForm({ project, onClose }) {
                                     imageUrl: e.target.value
                                 })
                             }
+                            placeholder="https://example.com/image.jpg"
                             className="bg-slate-700 border-slate-600 text-white"
                         />
                     </div>
 
-                    {/* Live URL */}
-                    <div className="space-y-2">
-                        <Label htmlFor="liveUrl" className="text-white">
-                            Live URL
-                        </Label>
-                        <Input
-                            id="liveUrl"
-                            value={formData.liveUrl}
-                            onChange={e =>
-                                setFormData({
-                                    ...formData,
-                                    liveUrl: e.target.value
-                                })
-                            }
-                            className="bg-slate-700 border-slate-600 text-white"
-                        />
-                    </div>
-
-                    {/* GitHub URL */}
-                    <div className="space-y-2">
-                        <Label htmlFor="githubUrl" className="text-white">
-                            GitHub URL
-                        </Label>
-                        <Input
-                            id="githubUrl"
-                            value={formData.githubUrl}
-                            onChange={e =>
-                                setFormData({
-                                    ...formData,
-                                    githubUrl: e.target.value
-                                })
-                            }
-                            className="bg-slate-700 border-slate-600 text-white"
-                        />
-                    </div>
-
-                    {/* Featured */}
                     <div className="flex items-center space-x-2">
                         <Checkbox
                             id="featured"
                             checked={formData.featured}
                             onCheckedChange={checked =>
-                                setFormData({
-                                    ...formData,
-                                    featured: Boolean(checked)
-                                })
+                                setFormData({ ...formData, featured: checked })
                             }
                         />
-                        <Label htmlFor="featured" className="text-white">
-                            Featured project
+                        <Label
+                            htmlFor="featured"
+                            className="text-white cursor-pointer"
+                        >
+                            Featured Project
                         </Label>
                     </div>
 
-                    {/* Actions */}
-                    <div className="flex justify-end space-x-2 pt-4">
+                    <div className="flex justify-end gap-2 pt-4">
                         <Button
                             type="button"
                             variant="outline"
@@ -289,8 +346,4 @@ export function ProjectForm({ project, onClose }) {
             </DialogContent>
         </Dialog>
     );
-}
-
-export function ProjectFormTrigger() {
-    return <ProjectForm />;
 }

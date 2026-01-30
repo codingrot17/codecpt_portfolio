@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
     Select,
     SelectContent,
@@ -16,45 +18,40 @@ import {
     DialogTitle,
     DialogTrigger
 } from "@/components/ui/dialog";
-import { Slider } from "@/components/ui/slider";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { techStackService } from "@/lib/appwrite-service";
 import { Plus, Edit } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { techStackService, categoryService } from "@/lib/appwrite-service";
 
-const techCategories = [
-    { value: "frontend", label: "Frontend" },
-    { value: "backend", label: "Backend" },
-    { value: "database", label: "Database" },
-    { value: "mobile", label: "Mobile" },
-    { value: "tools", label: "Tools" },
-    { value: "devops", label: "DevOps" }
-];
-
-const colorOptions = [
-    { value: "bg-blue-500/20", label: "Blue", color: "bg-blue-500" },
-    { value: "bg-green-500/20", label: "Green", color: "bg-green-500" },
-    { value: "bg-purple-500/20", label: "Purple", color: "bg-purple-500" },
-    { value: "bg-red-500/20", label: "Red", color: "bg-red-500" },
-    { value: "bg-yellow-500/20", label: "Yellow", color: "bg-yellow-500" },
-    { value: "bg-orange-500/20", label: "Orange", color: "bg-orange-500" },
-    { value: "bg-pink-500/20", label: "Pink", color: "bg-pink-500" },
-    { value: "bg-gray-500/20", label: "Gray", color: "bg-gray-500" }
-];
-
-export function TechStackForm({ techStack, onClose }) {
+export function TechStackForm({ techStack }) {
     const [open, setOpen] = useState(false);
     const [formData, setFormData] = useState({
         name: techStack?.name || "",
         icon: techStack?.icon || "",
-        progress: techStack?.progress || 50,
-        category: techStack?.category || "frontend",
-        color: techStack?.color || "bg-blue-500/20"
+        category: techStack?.category || "",
+        progress: techStack?.progress || 0,
+        description: techStack?.description || ""
     });
 
     const { toast } = useToast();
     const queryClient = useQueryClient();
+
+    // Fetch tech categories
+    const { data: categories = [] } = useQuery({
+        queryKey: ["categories", "tech"],
+        queryFn: () => categoryService.list("tech")
+    });
+
+    useEffect(() => {
+        if (techStack) {
+            setFormData({
+                name: techStack.name,
+                icon: techStack.icon,
+                category: techStack.category,
+                progress: techStack.progress,
+                description: techStack.description || ""
+            });
+        }
+    }, [techStack]);
 
     const createMutation = useMutation({
         mutationFn: data => techStackService.create(data),
@@ -62,22 +59,21 @@ export function TechStackForm({ techStack, onClose }) {
             queryClient.invalidateQueries({ queryKey: ["tech-stacks"] });
             toast({
                 title: "Success",
-                description: "Tech stack saved successfully"
+                description: "Tech stack created successfully"
             });
             setOpen(false);
-            onClose?.();
             setFormData({
                 name: "",
                 icon: "",
-                progress: 50,
-                category: "frontend",
-                color: "bg-blue-500/20"
+                category: "",
+                progress: 0,
+                description: ""
             });
         },
-        onError: err => {
+        onError: error => {
             toast({
                 title: "Error",
-                description: err.message,
+                description: error.message || "Failed to create tech stack",
                 variant: "destructive"
             });
         }
@@ -89,15 +85,14 @@ export function TechStackForm({ techStack, onClose }) {
             queryClient.invalidateQueries({ queryKey: ["tech-stacks"] });
             toast({
                 title: "Success",
-                description: "Tech stack saved successfully"
+                description: "Tech stack updated successfully"
             });
             setOpen(false);
-            onClose?.();
         },
-        onError: err => {
+        onError: error => {
             toast({
                 title: "Error",
-                description: err.message,
+                description: error.message || "Failed to update tech stack",
                 variant: "destructive"
             });
         }
@@ -120,7 +115,7 @@ export function TechStackForm({ techStack, onClose }) {
                         <Edit className="h-4 w-4" />
                     </Button>
                 ) : (
-                    <Button className="bg-blue-600 hover:bg-blue-700">
+                    <Button className="bg-green-600 hover:bg-green-700">
                         <Plus className="h-4 w-4 mr-2" />
                         Add Tech Stack
                     </Button>
@@ -155,7 +150,7 @@ export function TechStackForm({ techStack, onClose }) {
 
                     <div className="space-y-2">
                         <Label htmlFor="icon" className="text-white">
-                            Icon (Emoji)
+                            Icon URL
                         </Label>
                         <Input
                             id="icon"
@@ -166,9 +161,21 @@ export function TechStackForm({ techStack, onClose }) {
                                     icon: e.target.value
                                 })
                             }
+                            placeholder="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/..."
                             className="bg-slate-700 border-slate-600 text-white"
                             required
                         />
+                        <p className="text-xs text-gray-400">
+                            Get icons from{" "}
+                            <a
+                                href="https://devicon.dev/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-400 hover:underline"
+                            >
+                                DevIcon
+                            </a>
+                        </p>
                     </div>
 
                     <div className="space-y-2">
@@ -183,9 +190,9 @@ export function TechStackForm({ techStack, onClose }) {
                                 <SelectValue placeholder="Select category" />
                             </SelectTrigger>
                             <SelectContent className="bg-slate-700 border-slate-600">
-                                {techCategories.map(c => (
-                                    <SelectItem key={c.value} value={c.value}>
-                                        {c.label}
+                                {categories.map(cat => (
+                                    <SelectItem key={cat.$id} value={cat.slug}>
+                                        {cat.name}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -193,42 +200,41 @@ export function TechStackForm({ techStack, onClose }) {
                     </div>
 
                     <div className="space-y-2">
-                        <Label className="text-white">Color</Label>
-                        <Select
-                            value={formData.color}
-                            onValueChange={value =>
-                                setFormData({ ...formData, color: value })
-                            }
-                        >
-                            <SelectTrigger className="bg-slate-700 border-slate-600 text-white">
-                                <SelectValue placeholder="Select color" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-slate-700 border-slate-600">
-                                {colorOptions.map(c => (
-                                    <SelectItem key={c.value} value={c.value}>
-                                        <div className="flex items-center gap-2">
-                                            <div
-                                                className={`w-4 h-4 rounded ${c.color}`}
-                                            />
-                                            {c.label}
-                                        </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                        <Label className="text-white">
-                            Progress: {formData.progress}%
+                        <Label htmlFor="progress" className="text-white">
+                            Progress (%)
                         </Label>
-                        <Slider
-                            value={[formData.progress]}
-                            onValueChange={v =>
-                                setFormData({ ...formData, progress: v[0] })
+                        <Input
+                            id="progress"
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={formData.progress}
+                            onChange={e =>
+                                setFormData({
+                                    ...formData,
+                                    progress: parseInt(e.target.value)
+                                })
                             }
-                            max={100}
-                            step={5}
+                            className="bg-slate-700 border-slate-600 text-white"
+                            required
+                        />
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="description" className="text-white">
+                            Description (Optional)
+                        </Label>
+                        <Textarea
+                            id="description"
+                            value={formData.description}
+                            onChange={e =>
+                                setFormData({
+                                    ...formData,
+                                    description: e.target.value
+                                })
+                            }
+                            rows={3}
+                            className="bg-slate-700 border-slate-600 text-white"
                         />
                     </div>
 
@@ -253,8 +259,4 @@ export function TechStackForm({ techStack, onClose }) {
             </DialogContent>
         </Dialog>
     );
-}
-
-export function TechStackFormTrigger() {
-    return <TechStackForm />;
 }

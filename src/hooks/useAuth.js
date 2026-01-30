@@ -1,37 +1,35 @@
 import { useState, useEffect, createContext, useContext } from "react";
+import { authService } from "@/lib/auth-service";
 
 const AuthContext = createContext(null);
 
 export const useAuth = () => {
     const context = useContext(AuthContext);
-
     if (!context) {
         throw new Error("useAuth must be used within an AuthProvider");
     }
-
     return context;
 };
 
 export const useAuthProvider = () => {
+    const [user, setUser] = useState(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
     // Check authentication status on mount
     const checkAuth = async () => {
         try {
-            const res = await fetch("/api/auth/status", {
-                credentials: "include"
-            });
-
-            if (!res.ok) {
+            const currentUser = await authService.getCurrentUser();
+            if (currentUser) {
+                setUser(currentUser);
+                setIsAuthenticated(true);
+            } else {
+                setUser(null);
                 setIsAuthenticated(false);
-                return;
             }
-
-            const data = await res.json();
-            setIsAuthenticated(Boolean(data.authenticated));
         } catch (error) {
             console.error("Auth check failed:", error);
+            setUser(null);
             setIsAuthenticated(false);
         } finally {
             setIsLoading(false);
@@ -42,28 +40,41 @@ export const useAuthProvider = () => {
         checkAuth();
     }, []);
 
-    const login = async credentials => {
+    const login = async (email, password) => {
         setIsLoading(true);
-
         try {
-            const res = await fetch("/api/auth/login", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(credentials),
-                credentials: "include"
-            });
-
-            if (res.ok) {
-                setIsAuthenticated(true);
-                return true;
-            }
-
-            return false;
+            await authService.login(email, password);
+            const currentUser = await authService.getCurrentUser();
+            setUser(currentUser);
+            setIsAuthenticated(true);
+            return { success: true };
         } catch (error) {
             console.error("Login error:", error);
-            return false;
+            return {
+                success: false,
+                error: error.message || "Login failed"
+            };
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const signup = async (email, password, name) => {
+        setIsLoading(true);
+        try {
+            await authService.createAccount(email, password, name);
+            // Auto-login after signup
+            await authService.login(email, password);
+            const currentUser = await authService.getCurrentUser();
+            setUser(currentUser);
+            setIsAuthenticated(true);
+            return { success: true };
+        } catch (error) {
+            console.error("Signup error:", error);
+            return {
+                success: false,
+                error: error.message || "Signup failed"
+            };
         } finally {
             setIsLoading(false);
         }
@@ -71,10 +82,8 @@ export const useAuthProvider = () => {
 
     const logout = async () => {
         try {
-            await fetch("/api/auth/logout", {
-                method: "POST",
-                credentials: "include"
-            });
+            await authService.logout();
+            setUser(null);
             setIsAuthenticated(false);
         } catch (error) {
             console.error("Logout error:", error);
@@ -82,10 +91,12 @@ export const useAuthProvider = () => {
     };
 
     return {
+        user,
         isAuthenticated,
-        login,
-        logout,
         isLoading,
+        login,
+        signup,
+        logout,
         checkAuth
     };
 };
