@@ -21,13 +21,13 @@
         <meta name="robots" content="index, follow" />
         <meta name="theme-color" content="#0f172a" />
 
-        <!-- Canonical -->
-        <link rel="canonical" href="https://codecapt-portfolio.vercel.app/" />
-        
         <!-- Favicon -->
         <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
         <link rel="apple-touch-icon" sizes="180x180" href="/favicon.svg" />
-        
+
+        <!-- Canonical (updated per-page by useSEO hook) -->
+        <link rel="canonical" href="https://codecapt-portfolio.vercel.app/" />
+
         <!-- Open Graph / Facebook -->
         <meta property="og:type" content="website" />
         <meta
@@ -42,6 +42,10 @@
             property="og:description"
             content="Hi, I'm Ademola — a full-stack developer building modern web and mobile applications with React, Next.js, Node.js, and Laravel. Browse my projects, tech stack, and blog."
         />
+        <meta
+            property="og:image"
+            content="https://codecapt-portfolio.vercel.app/og-image.png"
+        />
         <meta property="og:site_name" content="Ademola's Portfolio" />
         <meta property="og:locale" content="en_US" />
 
@@ -55,6 +59,10 @@
             name="twitter:description"
             content="Hi, I'm Ademola — a full-stack developer building modern web and mobile applications with React, Next.js, Node.js, and Laravel. Browse my projects, tech stack, and blog."
         />
+        <meta
+            name="twitter:image"
+            content="https://codecapt-portfolio.vercel.app/og-image.png"
+        />
 
         <!-- JSON-LD Structured Data -->
         <script type="application/ld+json">
@@ -65,7 +73,11 @@
                 "jobTitle": "Full-Stack Developer",
                 "description": "Full-stack developer specializing in React, Next.js, Node.js, Laravel, and mobile application development.",
                 "url": "https://codecapt-portfolio.vercel.app/",
-                "sameAs": [],
+                "sameAs": [
+                    "https://github.com/codingrot17",
+                    "https://www.linkedin.com/in/emmanuel-ademola-b834b6290",
+                    "https://x.com/codingrot001"
+                ],
                 "knowsAbout": [
                     "React",
                     "Next.js",
